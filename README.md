@@ -2,6 +2,8 @@
 
 Small learning/demo repo: **deep reinforcement learning** for a traffic **intersection** in Rust with [Burn](https://burn.dev/). Sister project to [drl-balancer](https://github.com/RunBerserk/drl-balancer) (CartPole). An agent controls **traffic lights**; cars are rule-based. The live demo uses [macroquad](https://github.com/not-fl3/macroquad).
 
+![Intersection demo in agent mode](assets/demo.png)
+
 ## Stack
 
 | Component | Technology |
@@ -90,6 +92,7 @@ src/
   input.rs          # keys
   viz.rs            # map + cars + lights (render-only)
 docs/status/        # Kanban (status.md / done.md / notes.md)
+assets/             # README screenshot
 artifacts/          # training weights (gitignored)
 ```
 
