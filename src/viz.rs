@@ -32,10 +32,11 @@ pub fn draw(
 ) {
     clear_background(BG);
     draw_map();
-    draw_lights(env.phase);
     for car in &env.cars {
         draw_car(car);
     }
+    // Lights above cars so stop indicators stay visible at the line.
+    draw_lights(env.phase);
     draw_hud(env, episode_reward, agent_mode, policy_loaded, agent_action);
 }
 
@@ -139,14 +140,11 @@ fn draw_lights(phase: Phase) {
     let ew_on = phase == Phase::EwGreen;
     let light_r = STOP_LINE + 0.55;
 
-    // N approach light (facing southbound traffic)
-    draw_light(-LANE_OFFSET, light_r, ns_on);
-    // S
-    draw_light(LANE_OFFSET, -light_r, ns_on);
-    // E
-    draw_light(light_r, -LANE_OFFSET, ew_on);
-    // W
-    draw_light(-light_r, LANE_OFFSET, ew_on);
+    // Lights sit on the inbound (right-hand) lane of each approach.
+    draw_light(-LANE_OFFSET, light_r, ns_on); // N → southbound
+    draw_light(LANE_OFFSET, -light_r, ns_on); // S → northbound
+    draw_light(light_r, LANE_OFFSET, ew_on); // E → westbound
+    draw_light(-light_r, -LANE_OFFSET, ew_on); // W → eastbound
 }
 
 fn draw_light(wx: f32, wy: f32, green: bool) {

@@ -276,13 +276,15 @@ impl Default for Intersection {
 }
 
 impl Car {
-    /// World `(x, y)` with +x east, +y north.
+    /// World `(x, y)` with +x east, +y north. Lanes use right-hand traffic.
     pub fn xy(&self) -> (f32, f32) {
         match self.approach {
+            // Southbound keeps right (west side); northbound keeps right (east side).
             Approach::North => (-LANE_OFFSET, self.along),
             Approach::South => (LANE_OFFSET, self.along),
-            Approach::East => (self.along, -LANE_OFFSET),
-            Approach::West => (self.along, LANE_OFFSET),
+            // Westbound keeps right (north side); eastbound keeps right (south side).
+            Approach::East => (self.along, LANE_OFFSET),
+            Approach::West => (self.along, -LANE_OFFSET),
         }
     }
 }
