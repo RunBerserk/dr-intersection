@@ -149,19 +149,28 @@ impl Intersection {
     }
 
     pub fn waiting_count(&self) -> u32 {
-        self.cars.iter().filter(|c| c.speed < 1e-3 && car_before_stop(c)).count() as u32
+        self.cars
+            .iter()
+            .filter(|c| c.speed < 1e-3 && !in_junction(c))
+            .count() as u32
     }
 
     pub fn is_done(&self) -> bool {
         self.steps as usize >= MAX_STEPS
     }
 
-    /// Place a stopped car on an approach just before the stop line (tests / seeding).
+    /// Place a stopped car on an approach with its nose at the stop line.
     pub fn spawn_car_at_stop(&mut self, approach: Approach) {
-        let along = match approach {
-            Approach::North | Approach::East => STOP_LINE + CAR_LENGTH * 0.5 + 0.05,
-            Approach::South | Approach::West => -(STOP_LINE + CAR_LENGTH * 0.5 + 0.05),
-        };
+        self.cars.push(Car {
+            approach,
+            along: center_at_stop(approach),
+            speed: 0.0,
+        });
+    }
+
+    /// Place a car further back on the approach (still inbound).
+    pub fn spawn_car_approaching(&mut self, approach: Approach, dist_before_stop: f32) {
+        let along = center_at_stop(approach) - travel_dir(approach) * dist_before_stop.max(0.1);
         self.cars.push(Car {
             approach,
             along,
@@ -215,11 +224,21 @@ impl Intersection {
 
         for car in &mut self.cars {
             let green = phase_allows(phase, car.approach);
-            let past_stop = !car_before_stop(car);
             let clear = gap_ahead(car, &snapshot);
-            let can_go = past_stop || (green && clear);
+            let committed = in_junction(car);
+            let at_stop = front_reached_stop(car);
+
+            // Red: still roll up to the stop line; only halt once the nose is there.
+            // Green / already in the box: proceed if the lane ahead is clear.
+            let can_go = clear && (committed || green || !at_stop);
+
             car.speed = if can_go { CAR_SPEED } else { 0.0 };
-            car.along += travel_dir(car.approach) * car.speed * TAU;
+            let dir = travel_dir(car.approach);
+            let mut next = car.along + dir * car.speed * TAU;
+            if !green && !committed {
+                next = clamp_along_to_stop(car.approach, next);
+            }
+            car.along = next;
         }
 
         self.cars.retain(|c| !car_finished(c));
@@ -299,15 +318,51 @@ fn spawn_along(approach: Approach) -> f32 {
     }
 }
 
-fn car_before_stop(car: &Car) -> bool {
+fn stop_line_along(approach: Approach) -> f32 {
+    match approach {
+        Approach::North | Approach::East => STOP_LINE,
+        Approach::South | Approach::West => -STOP_LINE,
+    }
+}
+
+/// Center position when the car's nose sits on the stop line.
+fn center_at_stop(approach: Approach) -> f32 {
+    stop_line_along(approach) - travel_dir(approach) * (CAR_LENGTH * 0.5)
+}
+
+fn front_along(car: &Car) -> f32 {
+    car.along + travel_dir(car.approach) * (CAR_LENGTH * 0.5)
+}
+
+fn front_reached_stop(car: &Car) -> bool {
+    let front = front_along(car);
+    let stop = stop_line_along(car.approach);
     match car.approach {
-        Approach::North | Approach::East => car.along > STOP_LINE,
-        Approach::South | Approach::West => car.along < -STOP_LINE,
+        Approach::North | Approach::East => front <= stop + 1e-3,
+        Approach::South | Approach::West => front >= stop - 1e-3,
+    }
+}
+
+/// Nose clearly past the stop line → committed to clearing the junction.
+fn in_junction(car: &Car) -> bool {
+    let front = front_along(car);
+    let stop = stop_line_along(car.approach);
+    match car.approach {
+        Approach::North | Approach::East => front < stop - 0.05,
+        Approach::South | Approach::West => front > stop + 0.05,
+    }
+}
+
+fn clamp_along_to_stop(approach: Approach, along: f32) -> f32 {
+    let limit = center_at_stop(approach);
+    match approach {
+        Approach::North | Approach::East => along.max(limit),
+        Approach::South | Approach::West => along.min(limit),
     }
 }
 
 fn car_is_queued(car: &Car) -> bool {
-    car_before_stop(car)
+    !in_junction(car)
 }
 
 fn car_finished(car: &Car) -> bool {
@@ -392,9 +447,35 @@ mod tests {
         }
         assert!(
             (env.cars[0].along - start).abs() < CAR_SPEED * TAU * 2.0,
-            "north car should stay near stop on EW green"
+            "north car already at stop should stay on EW green"
         );
-        assert!(env.cars[0].along > STOP_LINE - 0.2);
+        assert!(!in_junction(&env.cars[0]));
+    }
+
+    #[test]
+    fn car_approaches_stop_on_red() {
+        let mut env = Intersection::new();
+        env.spawn_prob = 0.0;
+        env.phase = Phase::EwGreen;
+        env.time_in_phase = MIN_GREEN;
+        env.spawn_car_approaching(Approach::North, 3.0);
+        let start = env.cars[0].along;
+        let mut rng = rng();
+        for _ in 0..80 {
+            env.step(Action::EwGreen, &mut rng);
+        }
+        let car = &env.cars[0];
+        assert!(
+            car.along < start - 1.0,
+            "should roll forward toward the stop line on red"
+        );
+        assert!(
+            (car.along - center_at_stop(Approach::North)).abs() < 0.15,
+            "should halt with nose at the stop line, got along={}",
+            car.along
+        );
+        assert!(!in_junction(car));
+        assert!(car.speed < 1e-3);
     }
 
     #[test]
