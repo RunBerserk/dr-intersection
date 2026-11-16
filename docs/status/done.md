@@ -39,3 +39,9 @@
 
 - [x] 1. Versus-lang evaluated → **drop** (no Rust embed; see [notes.md](notes.md))
 - [x] 2. No scripting layer added (Rhai also rejected as unnecessary complexity)
+
+## Docs: README demo `[docs-readme-demo]`
+
+- [x] 1. Stack table (env params, obs/actions, Burn + macroquad + REINFORCE)
+- [x] 2. Run-demo / run-train / tests: keys, min-green, `policy.mpk`, train horizon
+- [x] 3. Binary overview, layout, requirements, notes link (parity with balancer)

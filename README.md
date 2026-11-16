@@ -1,15 +1,14 @@
 # DRL Intersection
 
-Small learning/demo repo: **deep reinforcement learning** for a traffic **intersection** in Rust with [Burn](https://burn.dev/). Sister project to [drl-balancer](https://github.com/RunBerserk/drl-balancer) (CartPole). Live demo uses [macroquad](https://github.com/not-fl3/macroquad).
-
-The agent controls **traffic lights**; cars are rule-based.
+Small learning/demo repo: **deep reinforcement learning** for a traffic **intersection** in Rust with [Burn](https://burn.dev/). Sister project to [drl-balancer](https://github.com/RunBerserk/drl-balancer) (CartPole). An agent controls **traffic lights**; cars are rule-based. The live demo uses [macroquad](https://github.com/not-fl3/macroquad).
 
 ## Stack
 
 | Component | Technology |
 |-----------|------------|
 | Language | Rust (edition 2024) |
-| Env | Custom 4-way intersection (NS/EW phases, min-green, queues) |
+| Env | Custom 4-way intersection (τ=0.05, min-green 2 s, right-hand traffic, episode cap 1000 steps) |
+| Obs / actions | Queues N/S/E/W + phase one-hot + time-in-phase → `NsGreen` / `EwGreen` |
 | ML | [Burn](https://burn.dev/) 0.21 — `ndarray` + `autodiff` backends |
 | Policy | MLP `7 → 64 → 2` (REINFORCE) |
 | Demo / render | [macroquad](https://github.com/not-fl3/macroquad) 0.4 |
@@ -53,7 +52,7 @@ If `artifacts/policy.mpk` exists, the demo starts in **agent mode** (greedy argm
 | **R** | Reset episode |
 | **Esc** | Quit |
 
-Phases respect a **min-green** lock (~2 s). Reward mixes throughput, waiting penalty, and “green the busier axis” shaping; episode ends at 1000 steps. In agent mode: auto-reset ~1 s after episode end. HUD shows `want:NS/EW` for the policy’s requested phase.
+Phases respect a **min-green** lock (~2 s). Cars roll up to the stop line on red, then wait. Reward mixes throughput, waiting penalty, and “green the busier axis” shaping. Demo episodes end at 1000 steps; in agent mode auto-reset ~1 s after that. HUD shows mode, phase, queues, and `want:NS/EW`.
 
 ## Run: training
 
@@ -61,11 +60,13 @@ Phases respect a **min-green** lock (~2 s). Reward mixes throughput, waiting p
 cargo run --release --bin train
 ```
 
-- Algorithm: **REINFORCE** (Adam, return norm, grad clip, entropy bonus)
-- 300 episodes × 300 steps; early stop when moving-average return ≥ **150**
+- Algorithm: **REINFORCE** (Adam, return normalization, grad clip, entropy bonus)
+- Horizon: **300** steps/episode (shorter than demo cap for denser credit assignment)
+- Early stop when moving-average return ≥ **150** (else max 300 episodes)
 - Writes weights to **`artifacts/policy.mpk`** (`artifacts/` is gitignored)
+- Logs greedy phase-switch count on eval after training
 
-Typical (release, CPU): several minutes depending on early stop. Re-train after pulling training changes.
+Typical (release, CPU): solved within a few minutes when pressure shaping works; re-train after reward/env changes.
 
 ## Tests
 
@@ -87,8 +88,8 @@ src/
   main.rs           # demo entry
   demo.rs           # fixed-timestep demo loop
   input.rs          # keys
-  viz.rs            # map + cars + lights
-docs/status/        # Kanban (status.md / done.md)
+  viz.rs            # map + cars + lights (render-only)
+docs/status/        # Kanban (status.md / done.md / notes.md)
 artifacts/          # training weights (gitignored)
 ```
 
@@ -96,7 +97,7 @@ artifacts/          # training weights (gitignored)
 
 Kanban: [docs/status/status.md](docs/status/status.md)
 
-Demo pipeline complete: env → train → live eval. Versus scripting dropped — see [docs/status/notes.md](docs/status/notes.md).
+Demo pipeline complete: env → train → live eval. Versus scripting was evaluated and dropped — [notes.md](docs/status/notes.md).
 
 ## License
 

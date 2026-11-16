@@ -14,7 +14,7 @@ Last updated: 2026-11-16
 
 ## Current Phase
 
-Demo pipeline complete (env → train → eval). Versus probe closed — see [notes.md](notes.md).
+Demo pipeline complete (env → train → eval). README matches balancer-style run/train docs.
 
 ## Done
 
@@ -30,7 +30,7 @@ _(empty)_
 
 ## Later (Backlog)
 
-- [ ] `[docs-readme-demo]` (docs) Full stack / run-demo / run-train README like balancer
+_(empty)_
 
 ## Gaps / Notes
 
