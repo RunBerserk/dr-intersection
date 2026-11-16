@@ -14,7 +14,7 @@ Last updated: 2026-11-16
 
 ## Current Phase
 
-Ampel env + manual demo running. Next: Burn policy + train binary.
+Burn REINFORCE train binary writes `artifacts/policy.mpk`. Next: load policy in demo (agent ↔ manual).
 
 ## Done
 
@@ -26,11 +26,10 @@ _(none)_
 
 ## Next Up
 
-- [ ] `[rl-burn-policy]` (rl) Burn policy + train binary (parity with drl-balancer)
+- [ ] `[demo-eval-loop]` (demo) Load policy, agent ↔ manual toggle
 
 ## Later (Backlog)
 
-- [ ] `[demo-eval-loop]` (demo) Load policy, agent ↔ manual toggle
 - [ ] `[versus-scripting]` (script) Evaluate Versus-lang for agent/env hooks _(optional)_
 - [ ] `[docs-readme-demo]` (docs) Full stack / run-demo / run-train README like balancer
 

@@ -9,6 +9,17 @@ pub enum Action {
     EwGreen,
 }
 
+impl Action {
+    /// Map policy index: `0` → NS, `1` → EW.
+    pub fn from_index(index: usize) -> Self {
+        if index == 0 {
+            Self::NsGreen
+        } else {
+            Self::EwGreen
+        }
+    }
+}
+
 /// Current illuminated phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {

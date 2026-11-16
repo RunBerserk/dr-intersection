@@ -2,7 +2,7 @@
 
 Small learning/demo repo: **deep reinforcement learning** for a traffic **intersection** in Rust with [Burn](https://burn.dev/). Sister project to [drl-balancer](https://github.com/RunBerserk/drl-balancer) (CartPole). Live demo uses [macroquad](https://github.com/not-fl3/macroquad); Versus-lang may join later for agent/env scripting.
 
-The agent (for now: you) controls **traffic lights**; cars are rule-based.
+The agent controls **traffic lights**; cars are rule-based.
 
 ## Stack
 
@@ -10,7 +10,8 @@ The agent (for now: you) controls **traffic lights**; cars are rule-based.
 |-----------|------------|
 | Language | Rust (edition 2024) |
 | Env | Custom 4-way intersection (NS/EW phases, min-green, queues) |
-| ML | [Burn](https://burn.dev/) _(planned)_ |
+| ML | [Burn](https://burn.dev/) 0.21 — `ndarray` + `autodiff` backends |
+| Policy | MLP `7 → 64 → 2` (REINFORCE) |
 | Demo / render | [macroquad](https://github.com/not-fl3/macroquad) 0.4 |
 | Scripting _(optional)_ | Versus-lang _(maybe)_ |
 | Lint | `warnings = deny`, `clippy::all = deny` |
@@ -20,11 +21,13 @@ Binaries:
 | Command | Binary | Role |
 |---------|--------|------|
 | `cargo run` | `drl-intersection` (default) | macroquad demo |
+| `cargo run --release --bin train` | `train` | headless training |
 
 ## Requirements
 
 - Rust toolchain (edition 2024 / recent stable)
 - Display for the demo window
+- Training runs headless on CPU (`ndarray`)
 
 ## Run: demo
 
@@ -44,6 +47,18 @@ Top-down 4-way intersection with spawning cars and signal lights. Manual mode:
 
 Phases respect a **min-green** lock (~2 s). Reward is `-waiting_cars` each step; episode ends at 1000 steps.
 
+## Run: training
+
+```bash
+cargo run --release --bin train
+```
+
+- Algorithm: **REINFORCE** (Adam, return normalization, grad clip)
+- Early stop when moving-average return ≥ **-200** (else max 400 episodes)
+- Writes weights to **`artifacts/policy.mpk`** (`artifacts/` is gitignored)
+
+Typical (release, CPU): several minutes depending on early stop.
+
 ## Tests
 
 ```bash
@@ -57,19 +72,22 @@ cargo clippy --all-targets
 src/
   lib.rs            # crate root
   intersection.rs   # env: lights, cars, step/obs
-  main.rs           # macroquad entry
+  policy.rs         # Burn PolicyNet
+  train.rs          # REINFORCE loop
+  bin/train.rs      # training entry
+  main.rs           # demo entry
   demo.rs           # fixed-timestep demo loop
   input.rs          # keys
   viz.rs            # map + cars + lights
 docs/status/        # Kanban (status.md / done.md)
-artifacts/          # training weights (gitignored, later)
+artifacts/          # training weights (gitignored)
 ```
 
 ## Project status
 
 Kanban: [docs/status/status.md](docs/status/status.md)
 
-Env + manual demo are up; Burn policy / train binary come next.
+Train binary saves `policy.mpk`; live agent eval in the demo is next.
 
 ## License
 
