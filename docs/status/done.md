@@ -13,3 +13,10 @@
 - [x] 2. Dashed center lines + edge lane marks on approaches
 - [x] 3. White stop lines on all four approaches
 - [x] 4. Esc quit via `input::quit_pressed` (HUD hint)
+
+## Env: intersection physics `[env-intersection-physics]`
+
+- [x] 1. Lib `intersection`: `Action` / `Phase` / cars / `step` / `observation`
+- [x] 2. NS↔EW phases with min-green; reward `-waiting`; episode cap `MAX_STEPS`
+- [x] 3. Demo: fixed timestep, 1/A & 2/D phases, R reset; viz cars + lights
+- [x] 4. Unit tests (switch lock, red stop, green go, reward, done)

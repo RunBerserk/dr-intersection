@@ -14,7 +14,7 @@ Last updated: 2026-11-16
 
 ## Current Phase
 
-Basic intersection map is drawn. Next: minimal traffic env (cars, signals, step API).
+Ampel env + manual demo running. Next: Burn policy + train binary.
 
 ## Done
 
@@ -26,11 +26,10 @@ _(none)_
 
 ## Next Up
 
-- [ ] `[env-intersection-physics]` (env) Minimal traffic env: cars, lights/signals, step API
+- [ ] `[rl-burn-policy]` (rl) Burn policy + train binary (parity with drl-balancer)
 
 ## Later (Backlog)
 
-- [ ] `[rl-burn-policy]` (rl) Burn policy + train binary (parity with drl-balancer)
 - [ ] `[demo-eval-loop]` (demo) Load policy, agent ↔ manual toggle
 - [ ] `[versus-scripting]` (script) Evaluate Versus-lang for agent/env hooks _(optional)_
 - [ ] `[docs-readme-demo]` (docs) Full stack / run-demo / run-train README like balancer

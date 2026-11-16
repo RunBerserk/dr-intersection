@@ -1,3 +1,4 @@
+mod demo;
 mod input;
 mod viz;
 
@@ -14,5 +15,5 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    viz::run().await;
+    demo::run().await;
 }
