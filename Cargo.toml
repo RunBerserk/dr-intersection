@@ -1,0 +1,19 @@
+[package]
+name = "drl-intersection"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+default-run = "drl-intersection"
+
+[dependencies]
+macroquad = "0.4"
+
+[[bin]]
+name = "drl-intersection"
+path = "src/main.rs"
+
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+all = "deny"
