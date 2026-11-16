@@ -34,3 +34,8 @@
 - [x] 2. Demo starts in agent mode when weights exist; **P** toggles manual
 - [x] 3. Greedy actions; keyboard override; auto-reset ~1s after episode end
 - [x] 4. HUD mode indicator; load test when artifact is present
+
+## Probe: Versus `[versus-probe-max-pressure]`
+
+- [x] 1. Versus-lang evaluated → **drop** (no Rust embed; see [notes.md](notes.md))
+- [x] 2. No scripting layer added (Rhai also rejected as unnecessary complexity)

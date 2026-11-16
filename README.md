@@ -1,6 +1,6 @@
 # DRL Intersection
 
-Small learning/demo repo: **deep reinforcement learning** for a traffic **intersection** in Rust with [Burn](https://burn.dev/). Sister project to [drl-balancer](https://github.com/RunBerserk/drl-balancer) (CartPole). Live demo uses [macroquad](https://github.com/not-fl3/macroquad); Versus-lang may join later for agent/env scripting.
+Small learning/demo repo: **deep reinforcement learning** for a traffic **intersection** in Rust with [Burn](https://burn.dev/). Sister project to [drl-balancer](https://github.com/RunBerserk/drl-balancer) (CartPole). Live demo uses [macroquad](https://github.com/not-fl3/macroquad).
 
 The agent controls **traffic lights**; cars are rule-based.
 
@@ -13,7 +13,6 @@ The agent controls **traffic lights**; cars are rule-based.
 | ML | [Burn](https://burn.dev/) 0.21 — `ndarray` + `autodiff` backends |
 | Policy | MLP `7 → 64 → 2` (REINFORCE) |
 | Demo / render | [macroquad](https://github.com/not-fl3/macroquad) 0.4 |
-| Scripting _(optional)_ | Versus-lang _(maybe)_ |
 | Lint | `warnings = deny`, `clippy::all = deny` |
 
 Binaries:
@@ -97,7 +96,7 @@ artifacts/          # training weights (gitignored)
 
 Kanban: [docs/status/status.md](docs/status/status.md)
 
-Demo pipeline complete: env → train → live eval.
+Demo pipeline complete: env → train → live eval. Versus scripting dropped — see [docs/status/notes.md](docs/status/notes.md).
 
 ## License
 
