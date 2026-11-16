@@ -14,7 +14,7 @@ Last updated: 2026-11-16
 
 ## Current Phase
 
-Scaffold: Rust + macroquad Hello World. Intersection env and Burn training are backlog.
+Basic intersection map is drawn. Next: minimal traffic env (cars, signals, step API).
 
 ## Done
 
@@ -26,7 +26,6 @@ _(none)_
 
 ## Next Up
 
-- [ ] `[viz-intersection-map]` (viz) Draw a basic intersection (roads, lanes, stop lines)
 - [ ] `[env-intersection-physics]` (env) Minimal traffic env: cars, lights/signals, step API
 
 ## Later (Backlog)

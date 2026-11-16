@@ -31,7 +31,7 @@ cargo run
 # equivalent: cargo run --bin drl-intersection
 ```
 
-Opens a window with a Hello World placeholder. Esc quits.
+Opens a top-down 4-way intersection (roads, lane marks, stop lines). Esc quits.
 
 ## Tests
 
@@ -45,7 +45,8 @@ cargo clippy --all-targets
 ```
 src/
   main.rs       # macroquad entry
-  viz.rs        # Hello World draw loop
+  input.rs      # Esc quit
+  viz.rs        # intersection map draw loop
 docs/status/    # Kanban (status.md / done.md)
 artifacts/      # training weights (gitignored, later)
 ```
@@ -54,7 +55,7 @@ artifacts/      # training weights (gitignored, later)
 
 Kanban: [docs/status/status.md](docs/status/status.md)
 
-Scaffold only: Hello World window is up; intersection env + Burn training come next.
+Intersection map is up; traffic env + Burn training come next.
 
 ## License
 

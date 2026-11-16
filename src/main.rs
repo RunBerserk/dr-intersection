@@ -1,12 +1,13 @@
+mod input;
 mod viz;
 
 use macroquad::prelude::*;
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "DRL Intersection — Hello World".to_owned(),
+        window_title: "DRL Intersection".to_owned(),
         window_width: 800,
-        window_height: 480,
+        window_height: 800,
         ..Default::default()
     }
 }
