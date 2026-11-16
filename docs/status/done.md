@@ -25,5 +25,12 @@
 
 - [x] 1. Lib layout: `intersection` / `policy` / `train`; `train` binary
 - [x] 2. Burn 0.21 policy MLP (7→64→2) on `Autodiff<NdArray>`
-- [x] 3. REINFORCE loop (Adam, return norm, early-stop avg≥-200)
+- [x] 3. REINFORCE loop (Adam, return norm, entropy, pressure-shaped reward)
 - [x] 4. Saves `artifacts/policy.mpk`; README training section
+
+## Demo: policy eval `[demo-eval-loop]`
+
+- [x] 1. `agent::Agent` loads `artifacts/policy.mpk` (NdArray inference)
+- [x] 2. Demo starts in agent mode when weights exist; **P** toggles manual
+- [x] 3. Greedy actions; keyboard override; auto-reset ~1s after episode end
+- [x] 4. HUD mode indicator; load test when artifact is present

@@ -105,17 +105,33 @@ impl Intersection {
         self.steps = 0;
     }
 
+    /// Reset and seed light traffic so learning/demo start with queues.
+    pub fn reset_with_traffic(&mut self, rng: &mut impl Rng) {
+        self.reset();
+        for approach in [
+            Approach::North,
+            Approach::South,
+            Approach::East,
+            Approach::West,
+        ] {
+            if rng.random_bool(0.75) {
+                self.spawn_car_at_stop(approach);
+            }
+        }
+    }
+
     pub fn observation(&self) -> [f32; OBS_DIM] {
         let (qn, qs, qe, qw) = self.queue_counts();
         let (ns, ew) = match self.phase {
             Phase::NsGreen => (1.0, 0.0),
             Phase::EwGreen => (0.0, 1.0),
         };
+        // Scale queues so typical counts sit near [0, 1].
         [
-            qn as f32,
-            qs as f32,
-            qe as f32,
-            qw as f32,
+            qn as f32 / 5.0,
+            qs as f32 / 5.0,
+            qe as f32 / 5.0,
+            qw as f32 / 5.0,
             ns,
             ew,
             (self.time_in_phase / MIN_GREEN).min(2.0),
@@ -154,17 +170,28 @@ impl Intersection {
     }
 
     pub fn step(&mut self, action: Action, rng: &mut impl Rng) -> StepResult {
+        let (qn, qs, qe, qw) = self.queue_counts();
+        let ns_pressure = qn + qs;
+        let ew_pressure = qe + qw;
+        let matches_pressure = match action {
+            Action::NsGreen => ns_pressure >= ew_pressure,
+            Action::EwGreen => ew_pressure >= ns_pressure,
+        };
+
         self.apply_action(action);
+        let before = self.cars.len();
         self.update_cars();
+        let cleared = before.saturating_sub(self.cars.len());
         self.try_spawn(rng);
         self.steps = self.steps.saturating_add(1);
 
         let waiting = self.waiting_count();
         let done = self.is_done();
-        StepResult {
-            reward: -(waiting as f32),
-            done,
-        }
+        // Strong pressure term so REINFORCE learns to green the busier axis;
+        // waiting/throughput keep the policy from flickering uselessly.
+        let mut reward = 0.5 * cleared as f32 - 0.15 * waiting as f32;
+        reward += if matches_pressure { 1.0 } else { -1.0 };
+        StepResult { reward, done }
     }
 
     fn apply_action(&mut self, action: Action) {
@@ -389,16 +416,17 @@ mod tests {
     }
 
     #[test]
-    fn reward_non_positive_when_queued() {
-        let mut env = Intersection::new();
-        env.spawn_prob = 0.0;
-        env.phase = Phase::EwGreen;
-        env.time_in_phase = MIN_GREEN;
-        env.spawn_car_at_stop(Approach::North);
+    fn wrong_pressure_is_worse_than_aligned() {
+        let mut bad = Intersection::new();
+        bad.spawn_prob = 0.0;
+        bad.phase = Phase::EwGreen;
+        bad.time_in_phase = MIN_GREEN;
+        bad.spawn_car_at_stop(Approach::North);
+        let mut good = bad.clone();
         let mut rng = rng();
-        let result = env.step(Action::EwGreen, &mut rng);
-        assert!(result.reward <= 0.0);
-        assert!(result.reward < 0.0);
+        let bad_r = bad.step(Action::EwGreen, &mut rng).reward;
+        let good_r = good.step(Action::NsGreen, &mut rng).reward;
+        assert!(good_r > bad_r, "green on busier axis should score higher");
     }
 
     #[test]

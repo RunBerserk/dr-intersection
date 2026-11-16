@@ -31,21 +31,30 @@ Binaries:
 
 ## Run: demo
 
+Without weights, train first (writes `artifacts/policy.mpk`):
+
+```bash
+cargo run --release --bin train
+```
+
+Then start the demo:
+
 ```bash
 cargo run
 # equivalent: cargo run --bin drl-intersection
 ```
 
-Top-down 4-way intersection with spawning cars and signal lights. Manual mode:
+If `artifacts/policy.mpk` exists, the demo starts in **agent mode** (greedy argmax). Otherwise it stays manual (console hint: train as above).
 
 | Key | Action |
 |-----|--------|
-| **1** / **A** | NS green |
-| **2** / **D** | EW green |
+| **P** | Toggle agent ↔ manual (only if a policy is loaded) |
+| **1** / **A** | NS green; override while in agent mode |
+| **2** / **D** | EW green; override while in agent mode |
 | **R** | Reset episode |
 | **Esc** | Quit |
 
-Phases respect a **min-green** lock (~2 s). Reward is `-waiting_cars` each step; episode ends at 1000 steps.
+Phases respect a **min-green** lock (~2 s). Reward mixes throughput, waiting penalty, and “green the busier axis” shaping; episode ends at 1000 steps. In agent mode: auto-reset ~1 s after episode end. HUD shows `want:NS/EW` for the policy’s requested phase.
 
 ## Run: training
 
@@ -53,11 +62,11 @@ Phases respect a **min-green** lock (~2 s). Reward is `-waiting_cars` each ste
 cargo run --release --bin train
 ```
 
-- Algorithm: **REINFORCE** (Adam, return normalization, grad clip)
-- Early stop when moving-average return ≥ **-200** (else max 400 episodes)
+- Algorithm: **REINFORCE** (Adam, return norm, grad clip, entropy bonus)
+- 300 episodes × 300 steps; early stop when moving-average return ≥ **150**
 - Writes weights to **`artifacts/policy.mpk`** (`artifacts/` is gitignored)
 
-Typical (release, CPU): several minutes depending on early stop.
+Typical (release, CPU): several minutes depending on early stop. Re-train after pulling training changes.
 
 ## Tests
 
@@ -74,6 +83,7 @@ src/
   intersection.rs   # env: lights, cars, step/obs
   policy.rs         # Burn PolicyNet
   train.rs          # REINFORCE loop
+  agent.rs          # inference: load policy.mpk
   bin/train.rs      # training entry
   main.rs           # demo entry
   demo.rs           # fixed-timestep demo loop
@@ -87,7 +97,7 @@ artifacts/          # training weights (gitignored)
 
 Kanban: [docs/status/status.md](docs/status/status.md)
 
-Train binary saves `policy.mpk`; live agent eval in the demo is next.
+Demo pipeline complete: env → train → live eval.
 
 ## License
 

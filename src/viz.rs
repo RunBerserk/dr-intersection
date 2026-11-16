@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 
 use drl_intersection::intersection::{
-    Approach, Car, Intersection, Phase, CAR_LENGTH, CAR_WIDTH, JUNCTION_HALF, LANE_OFFSET,
+    Action, Approach, Car, Intersection, Phase, CAR_LENGTH, CAR_WIDTH, JUNCTION_HALF, LANE_OFFSET,
     ROAD_HALF, SPAWN_DIST, STOP_LINE,
 };
 
@@ -23,14 +23,20 @@ const DASH_LEN: f32 = 18.0;
 const DASH_GAP: f32 = 14.0;
 const LIGHT_RADIUS: f32 = 8.0;
 
-pub fn draw(env: &Intersection, episode_reward: f32) {
+pub fn draw(
+    env: &Intersection,
+    episode_reward: f32,
+    agent_mode: bool,
+    policy_loaded: bool,
+    agent_action: Option<Action>,
+) {
     clear_background(BG);
     draw_map();
     draw_lights(env.phase);
     for car in &env.cars {
         draw_car(car);
     }
-    draw_hud(env, episode_reward);
+    draw_hud(env, episode_reward, agent_mode, policy_loaded, agent_action);
 }
 
 fn pixels_per_unit() -> f32 {
@@ -159,18 +165,43 @@ fn draw_car(car: &Car) {
     draw_rectangle(sx - w * 0.5, sy - h * 0.5, w, h, CAR_COLOR);
 }
 
-fn draw_hud(env: &Intersection, episode_reward: f32) {
+fn draw_hud(
+    env: &Intersection,
+    episode_reward: f32,
+    agent_mode: bool,
+    policy_loaded: bool,
+    agent_action: Option<Action>,
+) {
+    let mode = if !policy_loaded {
+        "manual (no policy.mpk)"
+    } else if agent_mode {
+        "agent"
+    } else {
+        "manual"
+    };
     let (qn, qs, qe, qw) = env.queue_counts();
     let phase = match env.phase {
         Phase::NsGreen => "NS green",
         Phase::EwGreen => "EW green",
     };
-    let line1 = format!(
-        "{phase}  t={:.1}s  step {}  reward {episode_reward:.0}",
-        env.time_in_phase, env.steps
+    let want = match agent_action {
+        Some(Action::NsGreen) => " want:NS",
+        Some(Action::EwGreen) => " want:EW",
+        None => "",
+    };
+    let line1 = format!("mode: {mode}  |  {phase}{want}  t={:.1}s", env.time_in_phase);
+    let line2 = format!(
+        "step {}  reward {episode_reward:.0}  queues N:{qn} S:{qs} E:{qe} W:{qw}  cars {}",
+        env.steps,
+        env.cars.len()
     );
-    let line2 = format!("queues N:{qn} S:{qs} E:{qe} W:{qw}  cars {}", env.cars.len());
-    let line3 = "1/A NS green   2/D EW green   R reset   Esc quit";
+    let line3 = if agent_mode {
+        "Agent lights  |  hold 1/A or 2/D to override  |  P manual  |  R reset  |  Esc quit"
+    } else if policy_loaded {
+        "1/A NS  2/D EW  |  P agent  |  R reset  |  Esc quit"
+    } else {
+        "1/A NS  2/D EW  |  R reset  |  Esc quit  (train for agent mode)"
+    };
 
     draw_text(&line1, 16.0, 28.0, 22.0, HUD);
     draw_text(&line2, 16.0, 52.0, 18.0, HUD_DIM);

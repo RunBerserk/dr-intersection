@@ -11,18 +11,21 @@ use burn::{
 };
 use rand::Rng;
 
-use crate::intersection::{Action, Intersection, MAX_STEPS};
+use crate::intersection::{Action, Intersection};
 use crate::policy::{PolicyNet, POLICY_ARTIFACT, POLICY_HIDDEN};
 
 type B = Autodiff<NdArray>;
 type Device = <NdArray as BackendTypes>::Device;
 
 const LR: f64 = 3e-3;
-const GAMMA: f32 = 0.99;
-const EPISODES: usize = 400;
+const GAMMA: f32 = 0.95;
+const EPISODES: usize = 300;
 const LOG_EVERY: usize = 20;
-/// Moving-average episode return target (rewards are ≤ 0; higher is better).
-const SOLVE_REWARD: f32 = -200.0;
+/// Shorter than demo `MAX_STEPS` for denser credit assignment.
+const TRAIN_HORIZON: usize = 300;
+const ENTROPY_COEF: f32 = 0.08;
+/// Moving-average episode return target (higher is better).
+const SOLVE_REWARD: f32 = 150.0;
 
 pub fn run() {
     let device = Default::default();
@@ -36,7 +39,7 @@ pub fn run() {
     let mut window = 0.0_f32;
 
     println!(
-        "REINFORCE Intersection — {EPISODES} episodes, lr={LR}, hidden={POLICY_HIDDEN}, solve>={SOLVE_REWARD}"
+        "REINFORCE Intersection — {EPISODES} eps × {TRAIN_HORIZON} steps, lr={LR}, entropy={ENTROPY_COEF}, solve>={SOLVE_REWARD}"
     );
 
     for ep in 1..=EPISODES {
@@ -49,8 +52,9 @@ pub fn run() {
         best = best.max(reward);
 
         if ep % LOG_EVERY == 0 || reward >= SOLVE_REWARD {
+            let switches = eval_switch_rate(&policy, &mut rng, &device);
             println!(
-                "ep {ep:4}  reward {reward:7.1}  avg {window:7.1}  best {best:7.1}  loss {loss:.4}"
+                "ep {ep:4}  reward {reward:7.1}  avg {window:7.1}  best {best:7.1}  loss {loss:.4}  switches {switches:.0}"
             );
         }
 
@@ -59,6 +63,9 @@ pub fn run() {
             break;
         }
     }
+
+    let switches = eval_switch_rate(&policy, &mut rng, &device);
+    println!("eval: phase switches / episode ≈ {switches:.1} (greedy, {TRAIN_HORIZON} steps)");
 
     save_policy(&policy);
     println!("saved policy → {POLICY_ARTIFACT}.mpk");
@@ -71,12 +78,13 @@ fn train_episode(
     device: &Device,
 ) -> (f32, f32) {
     let mut env = Intersection::new();
-    env.reset();
+    env.reset_with_traffic(rng);
 
     let mut log_probs: Vec<Tensor<B, 1>> = Vec::new();
+    let mut entropies: Vec<Tensor<B, 1>> = Vec::new();
     let mut rewards: Vec<f32> = Vec::new();
 
-    for _ in 0..MAX_STEPS {
+    for _ in 0..TRAIN_HORIZON {
         let obs = Tensor::<B, 1>::from_floats(env.observation(), device).unsqueeze::<2>();
         let logits = policy.forward(obs);
         let log_sm = activation::log_softmax(logits.clone(), 1);
@@ -84,8 +92,12 @@ fn train_episode(
 
         let action_idx = sample_action(&probs, rng);
         let indices = Tensor::<B, 1, Int>::from_ints([action_idx as i32], device);
-        let log_prob = log_sm.select(1, indices).reshape([1]);
+        let log_prob = log_sm.clone().select(1, indices).reshape([1]);
         log_probs.push(log_prob);
+
+        // Shannon entropy of the action distribution (encourages exploration).
+        let entropy = probs.clone().mul(log_sm).sum_dim(1).neg().reshape([1]);
+        entropies.push(entropy);
 
         let action = Action::from_index(action_idx);
         let step = env.step(action, rng);
@@ -99,12 +111,15 @@ fn train_episode(
     let total_reward: f32 = rewards.iter().sum();
 
     let log_probs = Tensor::cat(log_probs, 0);
+    let entropies = Tensor::cat(entropies, 0);
     let returns_t = Tensor::<B, 1>::from_data(TensorData::new(returns, [rewards.len()]), device);
     let mean = returns_t.clone().mean();
     let std = returns_t.clone().var(0).sqrt().clamp_min(1e-8);
     let adv = returns_t.sub(mean).div(std);
 
-    let loss = log_probs.mul(adv).mean().neg();
+    let policy_loss = log_probs.mul(adv).mean().neg();
+    let entropy_bonus = entropies.mean() * ENTROPY_COEF;
+    let loss = policy_loss - entropy_bonus;
     let loss_val = loss.clone().into_scalar().elem::<f32>();
 
     let grads = loss.backward();
@@ -112,6 +127,37 @@ fn train_episode(
     *policy = optim.step(LR, policy.clone(), grads);
 
     (total_reward, loss_val)
+}
+
+/// Greedy rollout: count how often the phase actually changes.
+fn eval_switch_rate(policy: &PolicyNet<B>, rng: &mut impl Rng, device: &Device) -> f32 {
+    type Infer = NdArray;
+    let infer = policy.valid();
+    let mut env = Intersection::new();
+    env.reset_with_traffic(rng);
+    let mut switches = 0_u32;
+    let mut prev = env.phase;
+
+    for _ in 0..TRAIN_HORIZON {
+        let obs =
+            Tensor::<Infer, 1>::from_floats(env.observation(), device).unsqueeze::<2>();
+        let logits = infer.forward(obs);
+        let values = logits.to_data().to_vec::<f32>().expect("logits");
+        let action = if values[0] >= values[1] {
+            Action::NsGreen
+        } else {
+            Action::EwGreen
+        };
+        env.step(action, rng);
+        if env.phase != prev {
+            switches += 1;
+            prev = env.phase;
+        }
+        if env.is_done() {
+            break;
+        }
+    }
+    switches as f32
 }
 
 fn sample_action<BB: Backend>(probs: &Tensor<BB, 2>, rng: &mut impl Rng) -> usize {

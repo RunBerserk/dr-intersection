@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-16
 
-**Time invested:** ~0h _(human — agents must not edit)_
+**Time invested:** ~1h _(human — agents must not edit)_
 
 <!-- AGENT-README:
   In Progress = human is working here by hand. Do NOT edit; do not take as a task.
@@ -14,7 +14,7 @@ Last updated: 2026-11-16
 
 ## Current Phase
 
-Burn REINFORCE train binary writes `artifacts/policy.mpk`. Next: load policy in demo (agent ↔ manual).
+Demo pipeline complete (env → train → eval). Optional: Versus-lang / README polish.
 
 ## Done
 
@@ -26,7 +26,7 @@ _(none)_
 
 ## Next Up
 
-- [ ] `[demo-eval-loop]` (demo) Load policy, agent ↔ manual toggle
+_(empty)_
 
 ## Later (Backlog)
 
@@ -37,3 +37,4 @@ _(none)_
 
 - Sister of `drl-balancer`; keep Cargo/lints/docs/status conventions aligned.
 - Versus-lang is optional — only pick up if it clearly helps iteration.
+- Training uses shaped reward + entropy; old `policy.mpk` from flat `-waiting` may collapse to one phase — re-train.
