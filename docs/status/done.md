@@ -5,7 +5,7 @@
 - [x] 1. Cargo binary `drl-intersection` + macroquad Hello World
 - [x] 2. `.gitignore`, README, MIT LICENSE
 - [x] 3. Docs Kanban: `docs/status/status.md` + `done.md`
-- [x] 4. GitHub `main` (`RunBerserk/dr-intersection`)
+- [x] 4. GitHub `main` (`RunBerserk/drl-intersection`)
 
 ## Viz: intersection map `[viz-intersection-map]`
 
